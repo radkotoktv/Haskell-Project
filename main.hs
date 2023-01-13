@@ -67,13 +67,11 @@ removeItems objects (l, o, c) = (l, (removeAll o objects), (removeContents l obj
 leaveItems :: [Object] -> Event
 leaveItems [] (l, o, c) = (l, o, c)
 leaveItems objects (l, o, c)
-    | null rofl = (l, o, c)
+    | null [y | y <- o, y `elem` objects] = (l, o, c)
     | otherwise = (l, (removeAll o objects), (addContents l objects c))
-        where rofl = [y | y <- o, y `elem` objects]
 
 takeItems :: [Object] -> Event
 takeItems [] (l, o, c) = (l, o, c)
 takeItems objects (l, o, c)
-    | null rofl = (l, o, c)
+    | null [x | y <- c , fst(y) == l , x <- snd(y) , x `elem` objects] = (l, o, c)
     | otherwise = (l, o ++ objects, removeContents l objects c)
-        where rofl = [x | y <- c , fst(y) == l , x <- snd(y) , x `elem` objects]
