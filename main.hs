@@ -1,78 +1,79 @@
-data Item
-    = Item
-    {
-        _itemName :: String,
-        _itemDescription :: String,
-        _itemSize :: Int,
-        _itemWeight :: Int,
-        _itemPrice :: Int
-    }
-    deriving(Eq, Show)
+type Location = String
+type Map = [(Location, Location)]
 
-data Exit
-    = Exit
-    {
-        _exitName :: String,
-        _exitDescription :: String,
-        _exitFrom :: Room,
-        _exitTo :: Room
-    }
-    deriving(Eq, Show)
+type Object = String
+type Contents = [(Location, [Object])]
 
-data Room
-    = Room
-    {   
-        _roomName        :: String,
-        _roomDescription :: String,
-        _roomItems       :: [Item],
-        _roomExits       :: [Exit]
-    }
-    deriving(Eq, Show)
+findContents :: Location -> Contents -> [Object]
+findContents _ []   = []
+findContents l ((x,xs):content)
+    | l == x    = xs
+    | otherwise = findContents l content
 
-data World
-    = World
-    {
-        _worldRooms :: [Room],
-        _worldItems :: [Item],
-        _worldExits :: [Exit],
-        _playerRoom :: Room
-    }
-    deriving(Eq, Show)
+addContents :: Location -> [Object] -> Contents -> Contents
+addContents _ _ [] = []
+addContents l ys ((x,xs):content)
+    | x == l    = (x, xs ++ ys):content
+    | otherwise = (x,xs):addContents l ys content
 
-room :: Room
-room = Room{
-_roomName = "auhfgsduhfsdjhfhsdjfhsdjfhsdk",
-_roomDescription = "abbdsifjifsdjidfs"
+------------------------------------------------------
 
-}
+removeOne :: Eq a => [a] -> a -> [a]
+removeOne [] _ = []
+removeOne (x:xs) y
+    | x == y   = xs
+    | otherwise = x:removeOne xs y
 
-renderRoom :: Room -> String
-renderRoom (Room name desc _ _) =
-    name ++ "  " ++ desc
+removeAll :: Eq a => [a] -> [a] -> [a]
+removeAll xs [] = xs
+removeAll xs (y:ys) = removeAll (removeOne xs y) ys
 
+removeContents :: Location -> [Object] -> Contents -> Contents
+removeContents _ _ [] = []
+removeContents l ys ((x,xs):rest)
+    | x == l    = (x, removeAll xs ys):rest
+    | otherwise = (x, xs):removeContents l ys rest
 
+--------------------------------------------------------
 
+quickSort :: Ord a => [a] -> [a]
+quickSort [] = []
+quickSort (x:xs) =  lower ++ x:higher
+  where lower  = quickSort [y | y<-xs, y <= x]
+        higher = quickSort [y | y<-xs, y > x]
 
+equal :: [Object] -> [Object] -> Bool
+equal xs ys = quickSort xs == quickSort ys
 
+----------------------------------------------------------
 
+type Game = (Location, [Object], Contents)
 
+type Event = Game -> Game
 
+empty = ("", [], [])
 
+--------------------------------------------------------
 
+receiveItems :: [Object] -> Event
+receiveItems objects (l, o, c) = (l, objects ++ o, c)
 
+deposit :: [Object] -> Event
+deposit objects (l, o, c) = (l, o, addContents l objects c)
 
+removeItems :: [Object] -> Event
+removeItems objects (l, o, c) = (l, (removeAll o objects), (removeContents l objects c))
 
+leaveItems :: [Object] -> Event
+leaveItems [] (l, o, c) = (l, o, c)
+leaveItems objects (l, o, c)
+    | null rofl = (l, o, c)
+    | otherwise = (l, (removeAll o objects), (addContents l objects c))
+        where rofl = [y | y <- o, y `elem` objects]
 
-
-
-
-
-
-
-
-
-
-
-fact :: (Eq t, Num t) => t -> t
-fact 0 = 1
-fact n = n * fact (n - 1)
+takeItems :: [Object] -> Event
+takeItems [] (l, o, c) = (l, o, c)
+takeItems objects (l, o, c)
+    | null rofl = (l, o, c)
+    | otherwise = (l, o ++ objects, removeContents l objects c)
+        where rofl = [x | y <- c , fst(y) == l , x <- snd(y) , x `elem` objects]
