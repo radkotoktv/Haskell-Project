@@ -51,18 +51,7 @@ type Game = (Location, [Object], Contents)
 
 type Event = Game -> Game
 
-empty = ("", [], [])
-
 --------------------------------------------------------
-
-receiveItems :: [Object] -> Event
-receiveItems objects (l, o, c) = (l, objects ++ o, c)
-
-deposit :: [Object] -> Event
-deposit objects (l, o, c) = (l, o, addContents l objects c)
-
-removeItems :: [Object] -> Event
-removeItems objects (l, o, c) = (l, (removeAll o objects), (removeContents l objects c))
 
 leaveItems :: [Object] -> Event
 leaveItems [] (l, o, c) = (l, o, c)
@@ -75,3 +64,27 @@ takeItems [] (l, o, c) = (l, o, c)
 takeItems objects (l, o, c)
     | null [x | y <- c , fst(y) == l , x <- snd(y) , x `elem` objects] = (l, o, c)
     | otherwise = (l, o ++ objects, removeContents l objects c)
+
+exitWords :: [String]
+exitWords = ["exit","EXIT","quit","QUIT"]
+
+start :: Game
+start = ("A campsite", [], idkrofl)
+
+idkrofl :: Contents
+idkrofl = 
+    [ 
+        ("A Campsite", ["Iron sword"]),
+        ("The forest", []),
+        ("The mines", ["Diamond ore", "Gold ore"])
+    ]
+
+_map :: Map
+_map = [(c, f), (c, m), (m, f)]
+    where
+        c = "A campsite"
+        f = "The forest"
+        m = "The mines"
+
+accessible :: Location -> [Location]
+accessible l = [x | (x, y) <- _map , y == l] ++ [y | (x, y) <- _map , x == l]
