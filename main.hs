@@ -69,15 +69,18 @@ exitWords :: [String]
 exitWords = ["exit","EXIT","quit","QUIT"]
 
 start :: Game
-start = ("A campsite", [], idkrofl)
+start = ("A campsite", ["Iron sword"], idkrofl)
 
 idkrofl :: Contents
 idkrofl = 
     [ 
-        ("A Campsite", ["Iron sword"]),
+        ("A campsite", ["Iron sword"]),
         ("The forest", []),
         ("The mines", ["Diamond ore", "Gold ore"])
     ]
+
+locations :: [String]
+locations = ["A campsite", "The forest", "The mines"]
 
 _map :: Map
 _map = [(c, f), (c, m), (m, f)]
@@ -86,5 +89,37 @@ _map = [(c, f), (c, m), (m, f)]
         f = "The forest"
         m = "The mines"
 
+getItems :: Location -> [Object]
+getItems l = concat [y | (x, y) <- idkrofl, x == l]
+
+enumerate :: Int -> [String] -> String
+enumerate n xs = unlines [ "  " ++ show i ++ ". " ++ x | (i,x) <- zip [n..] xs ]
+
 accessible :: Location -> [Location]
 accessible l = [x | (x, y) <- _map , y == l] ++ [y | (x, y) <- _map , x == l]
+
+findLocation _ [] = []
+findLocation l (x:xs)
+    = if x == l then x
+    else findLocation l xs
+
+
+game :: Game -> IO()
+game (location, objects, contents)
+    = do
+        let canGo = accessible location
+        let inventory = objects
+        let seenItems = getItems location
+        putStrLn "-------------------"
+        putStr "You are in: "
+        putStrLn location
+        putStrLn "You have: "
+        putStr (enumerate 1 inventory)
+        putStrLn "You can go to: "
+        putStr (enumerate 1 canGo)
+        putStrLn "The items you see are: "
+        putStr (enumerate 1 seenItems)
+        choice <- getLine
+        if choice `elem` exitWords then do putStrLn "Thank you for playing!"
+        else if choice `notElem` locations then game (location, objects, contents)
+        else do game (findLocation choice locations, objects, contents)
