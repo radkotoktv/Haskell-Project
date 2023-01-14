@@ -69,7 +69,7 @@ exitWords :: [String]
 exitWords = ["exit","EXIT","quit","QUIT"]
 
 start :: Game
-start = ("A campsite", ["Iron sword"], idkrofl)
+start = ("A campsite", [], idkrofl)
 
 idkrofl :: Contents
 idkrofl = 
@@ -118,8 +118,10 @@ game (location, objects, contents)
         putStrLn "You can go to: "
         putStr (enumerate 1 canGo)
         putStrLn "The items you see are: "
-        putStr (enumerate 1 seenItems)
+        putStrLn (enumerate 1 seenItems)
         choice <- getLine
         if choice `elem` exitWords then do putStrLn "Thank you for playing!"
         else if choice `notElem` locations then game (location, objects, contents)
-        else do game (findLocation choice locations, objects, contents)
+        else do 
+            print (enumerate 1 (getItems "The mines"))
+            game (findLocation choice locations, objects, contents)
