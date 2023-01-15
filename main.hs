@@ -15,25 +15,33 @@ exitWords :: [String]
 exitWords = ["exit","EXIT", "quit","QUIT", "q"]
 
 start :: Game
-start = ("A campsite", [], _contents)
+start = ("Campsite", [], _contents)
 
 _contents :: Contents
 _contents = 
     [ 
-        ("A campsite", ["Iron sword"]),
-        ("The forest", []),
-        ("The mines", ["Diamond ore", "Gold ore"])
+        ("Campsite", []),
+        ("Forest", ["Wooden sword"]),
+        ("Mine", ["Pickaxe"]),
+        ("Swamp", ["Whip", "Shovel"]),
+        ("Lake", ["Fishing rod"]),
+        ("Mountain", ["Shield"]),
+        ("Cabin", ["Shotgun"])
     ]
 
 locations :: [String]
-locations = ["A campsite", "The forest", "The mines"]
+locations = ["Campsite", "Forest", "Mine", "Swamp", "Lake", "Mountain", "Cabin"]
 
 _map :: Map
-_map = [(c, f), (c, m), (m, f)]
+_map = [(campsite, forest), (forest, mines), (forest, swamp), (forest, mountain), (swamp, lake), (swamp, mountain), (lake, cabin), (mountain, cabin)]
     where
-        c = "A campsite"
-        f = "The forest"
-        m = "The mines"
+        campsite = "Campsite"
+        forest = "Forest"
+        mines = "Mine"
+        swamp = "Swamp"
+        lake = "Lake"
+        mountain = "Mountain"
+        cabin = "Cabin"
 
 removeOne :: Eq a => [a] -> a -> [a]
 removeOne [] _ = []
@@ -69,17 +77,25 @@ type Name = String
 type Attack = Int
 type Health = Int
 
-type Player = (Health, [Object])
+type Player = (Health, [Weapon])
 
 type Enemy = (Race, Health, [Attack])
 
 type Fight = (Enemy, Player)
 
+type Weapon = (Object, Int)
+
+
 balrog :: Enemy
 balrog = ("Balrog", 25, [2, 5, 3])
 
 testPlayer :: Player
-testPlayer = (50, ["Iron sword"])
+testPlayer = (50, 
+                [
+                    ("Iron sword", 5),
+                    ("Shield", 2)
+                ]
+            )
 
 printPlayer :: Player -> IO()
 printPlayer (health, items)
@@ -121,9 +137,13 @@ fight ((race, enemyHealth, attacks), (playerHealth, items))
                 if option == "attack" then do
                                             putStr "The "
                                             putStr race
-                                            putStr " hit you for 3 damage!"
+                                            putStr " hit you for 3 damage!\n"
                                             fight ((race, enemyHealth - 5, attacks), (playerHealth - 3, items))
-                else fight((race, enemyHealth - 5, attacks), (playerHealth - 3, items))
+                else do
+                        putStr "The "
+                        putStr race
+                        putStr " hit you for 3 damage!\n"                        
+                        fight((race, enemyHealth, attacks), (playerHealth - 3, items))
         
 
 
@@ -155,7 +175,7 @@ game (location, objects, contents)
         putStrLn (enumerate 1 seenItems)
         choice <- getLine
         if choice `elem` exitWords then do putStrLn "Thank you for playing!"
-        else if choice `elem` locations then do game (choice, objects, contents)
+        else if choice `elem` canGo then do game (choice, objects, contents)
         else if choice == "take" then do game (location, objects ++ getItems location contents, removeFromLocation location seenItems contents)                         
         else if choice == "help" then do 
                                         putStrLn "Here is a list of commands you can use"
