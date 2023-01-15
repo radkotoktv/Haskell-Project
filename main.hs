@@ -1,10 +1,9 @@
 type Location = String
 type Map = [(Location, Location)]
 
-type Object = String
-type Contents = [(Location, [Object])]
+type Contents = [(Location, [Weapon])]
 
-type Game = (Location, [Object], Contents)
+type Game = (Location, [Weapon], Contents)
 
 type Event = Game -> Game
 
@@ -21,12 +20,12 @@ _contents :: Contents
 _contents = 
     [ 
         ("Campsite", []),
-        ("Forest", ["Wooden sword"]),
-        ("Mine", ["Pickaxe"]),
-        ("Swamp", ["Whip", "Shovel"]),
-        ("Lake", ["Fishing rod"]),
-        ("Mountain", ["Shield"]),
-        ("Cabin", ["Shotgun"])
+        ("Forest", [("Wooden sword", 5)]),
+        ("Mine", [("Pickaxe", 4)]),
+        ("Swamp", [("Whip", 4), ("Shovel", 3)]),
+        ("Lake", [("Fishing rod", 1)]),
+        ("Mountain", [("Shield", 2)]),
+        ("Cabin", [("Shotgun", 10)])
     ]
 
 locations :: [String]
@@ -53,17 +52,23 @@ removeAll :: Eq a => [a] -> [a] -> [a]
 removeAll xs [] = xs
 removeAll xs (y:ys) = removeAll (removeOne xs y) ys
 
-removeFromLocation :: Location -> [Object] -> Contents -> Contents
+removeFromLocation :: Location -> [Weapon] -> Contents -> Contents
 removeFromLocation _ _ [] = []
 removeFromLocation l ys ((x,xs):rest)
     | x == l    = (x, removeAll xs ys):rest
     | otherwise = (x, xs):removeFromLocation l ys rest
 
-getItems :: Location -> Contents -> [Object]
+getItems :: Location -> Contents -> [Weapon]
 getItems l contents = concat [y | (x, y) <- contents, x == l]
 
-enumerate :: Int -> [String] -> String
-enumerate n xs = unlines [ "  " ++ show i ++ ". " ++ x | (i,x) <- zip [n..] xs ]
+enumerate :: [String] -> String
+enumerate xs = unlines ["  " ++ show i ++ ". " ++ x | (i,x) <- zip [1..] xs ]
+
+getNamesOfWeapons :: [Weapon] -> [String]
+getNamesOfWeapons xs = map fst xs
+
+getStatsOfWeapons :: [Weapon] -> [Int]
+getStatsOfWeapons xs = map snd xs
 
 accessible :: Location -> [Location]
 accessible l = [x | (x, y) <- _map , y == l] ++ [y | (x, y) <- _map , x == l]
@@ -83,7 +88,7 @@ type Enemy = (Race, Health, [Attack])
 
 type Fight = (Enemy, Player)
 
-type Weapon = (Object, Int)
+type Weapon = (String, Int)
 
 
 balrog :: Enemy
@@ -108,8 +113,8 @@ printPlayer (health, items)
                 putStr (show health)
                 putStr "/"
                 putStrLn (show startingHealth)
-                putStr "Items: "
-                print items
+                putStrLn "Items: "
+                putStrLn (enumerate (getNamesOfWeapons items))
 
 printEnemy :: Enemy -> IO()
 printEnemy (race, enemyHealth, attacks)
@@ -121,7 +126,7 @@ printEnemy (race, enemyHealth, attacks)
                 putStrLn race
                 putStr "Attacks: "
                 print attacks
-                putStr "Health: "
+                putStr "HP: "
                 print enemyHealth
 
 fight:: Fight -> IO()
@@ -138,7 +143,7 @@ fight ((race, enemyHealth, attacks), (playerHealth, items))
                                             putStr "The "
                                             putStr race
                                             putStr " hit you for 3 damage!\n"
-                                            fight ((race, enemyHealth - 5, attacks), (playerHealth - 3, items))
+                                            fight ((race, enemyHealth - startingAttack, attacks), (playerHealth - 3, items))
                 else do
                         putStr "The "
                         putStr race
@@ -156,35 +161,40 @@ startingHealth :: Int
 startingHealth = 50
 
 startingAttack :: Int
-startingAttack = 1
+startingAttack = 4
 
 game :: Game -> IO()
-game (location, objects, contents)
+game (location, weapons, contents)
     = do
         let canGo = accessible location
-        let inventory = objects
+        let inventory = weapons
         let seenItems = getItems location contents
         putStrLn "-------------------\n"
         putStr "You are in: "
         putStrLn location
         putStrLn "You have: "
-        putStr (enumerate 1 inventory)
+        putStrLn (enumerate (getNamesOfWeapons inventory))
         putStrLn "You can go to: "
-        putStr (enumerate 1 canGo)
+        putStr (enumerate canGo)
         putStrLn "The items you see are: "
-        putStrLn (enumerate 1 seenItems)
+        putStrLn (enumerate (getNamesOfWeapons seenItems))
         choice <- getLine
         if choice `elem` exitWords then do putStrLn "Thank you for playing!"
-        else if choice `elem` canGo then do game (choice, objects, contents)
-        else if choice == "take" then do game (location, objects ++ getItems location contents, removeFromLocation location seenItems contents)                         
+        else if choice `elem` canGo then do game (choice, weapons, contents)
+        else if choice == "take" then do game (location, weapons ++ getItems location contents, removeFromLocation location seenItems contents)                         
         else if choice == "help" then do 
                                         putStrLn "Here is a list of commands you can use"
                                         putStrLn "1. take - takes the items you can see"
                                         putStrLn "2. exit - exits the application"
-                                        game (location, objects, contents)
+                                        game (location, weapons, contents)
+        else if choice == "fight" then do 
+                                        fight (balrog, (startingHealth, weapons))
+                                        game (location, weapons, contents)
         else do 
                 putStrLn "\n\n"
-                game (location, objects, contents)
+                game (location, weapons, contents)
+
+
 
 
 
