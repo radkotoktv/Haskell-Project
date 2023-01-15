@@ -10,7 +10,6 @@ type Event = Game -> Game
 
 --------------------------------------------------------
 
-
 exitWords :: [String]
 exitWords = ["exit","EXIT", "quit","QUIT", "q"]
 
@@ -60,6 +59,7 @@ enumerate n xs = unlines [ "  " ++ show i ++ ". " ++ x | (i,x) <- zip [n..] xs ]
 accessible :: Location -> [Location]
 accessible l = [x | (x, y) <- _map , y == l] ++ [y | (x, y) <- _map , x == l]
 
+findLocation :: Location -> [Location] -> Location
 findLocation _ [] = []
 findLocation l (x:xs)
     = if x == l then x
