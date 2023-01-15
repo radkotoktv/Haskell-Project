@@ -59,13 +59,6 @@ enumerate n xs = unlines [ "  " ++ show i ++ ". " ++ x | (i,x) <- zip [n..] xs ]
 accessible :: Location -> [Location]
 accessible l = [x | (x, y) <- _map , y == l] ++ [y | (x, y) <- _map , x == l]
 
-findLocation :: Location -> [Location] -> Location
-findLocation _ [] = []
-findLocation l (x:xs)
-    = if x == l then x
-    else findLocation l xs
-
-
 game :: Game -> IO()
 game (location, objects, contents)
     = do
@@ -83,7 +76,7 @@ game (location, objects, contents)
         putStrLn (enumerate 1 seenItems)
         choice <- getLine
         if choice `elem` exitWords then do putStrLn "Thank you for playing!"
-        else if choice `elem` locations then do game (findLocation choice locations, objects, contents)
+        else if choice `elem` locations then do game (choice, objects, contents)
         else if choice == "take" then do game (location, objects ++ getItems location contents, removeFromLocation location seenItems contents)                         
         else do 
                 putStrLn "\n\n"
