@@ -25,10 +25,13 @@ _contents =
         ("Swamp", [("Whip", 4), ("Shovel", 3)]),
         ("Lake", [("Fishing rod", 1)]),
         ("Mountain", [("Shield", 2)]),
-        ("Cabin", [("Shotgun", 10)])
+        ("Cabin", [])
     ]
 
-locations :: [String]
+_weapons :: [Weapon]
+_weapons = [("Wooden sword", 5), ("Pickaxe", 4), ("Whip", 4), ("Shovel", 3), ("Fishing rod", 1), ("Shield", 2)]
+
+locations :: [Location]
 locations = ["Campsite", "Forest", "Mine", "Swamp", "Lake", "Mountain", "Cabin"]
 
 _map :: Map
@@ -73,6 +76,13 @@ getStatsOfWeapons xs = map snd xs
 accessible :: Location -> [Location]
 accessible l = [x | (x, y) <- _map , y == l] ++ [y | (x, y) <- _map , x == l]
 
+getStatsOfAWeapon :: String -> [Weapon] -> Int
+getStatsOfAWeapon _ [] = 0
+getStatsOfAWeapon x (z:zs) 
+    = if x == fst(z) then snd(z)
+    else getStatsOfAWeapon x zs
+
+
 ---------------------------------------------------------------------------
 -----------------------------------ENEMY-----------------------------------
 ---------------------------------------------------------------------------
@@ -113,7 +123,7 @@ printPlayer (health, items)
                 putStr (show health)
                 putStr "/"
                 putStrLn (show startingHealth)
-                putStrLn "Items: "
+                putStrLn "Weapons: "
                 putStrLn (enumerate (getNamesOfWeapons items))
 
 printEnemy :: Enemy -> IO()
@@ -140,10 +150,11 @@ fight ((race, enemyHealth, attacks), (playerHealth, items))
                 putStrLn "What do you do?"
                 option <- getLine
                 if option == "attack" then do
-                                            putStr "The "
-                                            putStr race
-                                            putStr " hit you for 3 damage!\n"
-                                            fight ((race, enemyHealth - startingAttack, attacks), (playerHealth - 3, items))
+                                            putStrLn "Which weapon do you want to use?"
+                                            putStrLn (enumerate (getNamesOfWeapons items))
+                                            weaponOfChoice <- getLine
+                                            fight ((race, enemyHealth - (getStatsOfAWeapon weaponOfChoice _weapons), attacks),(playerHealth - 4, items))
+
                 else do
                         putStr "The "
                         putStr race
@@ -160,9 +171,6 @@ fight ((race, enemyHealth, attacks), (playerHealth, items))
 startingHealth :: Int
 startingHealth = 50
 
-startingAttack :: Int
-startingAttack = 4
-
 game :: Game -> IO()
 game (location, weapons, contents)
     = do
@@ -170,29 +178,36 @@ game (location, weapons, contents)
         let inventory = weapons
         let seenItems = getItems location contents
         putStrLn "-------------------\n"
-        putStr "You are in: "
+        putStr "You are in: " -- Your current location
         putStrLn location
-        putStrLn "You have: "
+        putStrLn "You have: " -- The items in your inventory
         putStrLn (enumerate (getNamesOfWeapons inventory))
-        putStrLn "You can go to: "
+        putStrLn "You can go to: " -- To go there type the name of the location (ex. Forest)
         putStr (enumerate canGo)
-        putStrLn "The items you see are: "
+        putStrLn "The items you see are (take): " -- "take" - takes all the items
         putStrLn (enumerate (getNamesOfWeapons seenItems))
-        choice <- getLine
-        if choice `elem` exitWords then do putStrLn "Thank you for playing!"
-        else if choice `elem` canGo then do game (choice, weapons, contents)
-        else if choice == "take" then do game (location, weapons ++ getItems location contents, removeFromLocation location seenItems contents)                         
-        else if choice == "help" then do 
-                                        putStrLn "Here is a list of commands you can use"
-                                        putStrLn "1. take - takes the items you can see"
-                                        putStrLn "2. exit - exits the application"
-                                        game (location, weapons, contents)
-        else if choice == "fight" then do 
-                                        fight (balrog, (startingHealth, weapons))
-                                        game (location, weapons, contents)
-        else do 
-                putStrLn "\n\n"
-                game (location, weapons, contents)
+        if location == "Cabin" then do
+                                    putStrLn "You have encountered an enemy! What do you do?"
+                                    action <- getLine
+                                    if action == "fight" then do
+                                                                fight (balrog, (startingHealth, weapons))
+                                    else do game (location, weapons, contents)
+        else do
+            choice <- getLine
+            if choice `elem` exitWords then do putStrLn "Thank you for playing!" -- quit the game
+            else if choice `elem` canGo then do game (choice, weapons, contents) -- go to a different location
+            else if choice == "take" then do game (location, weapons ++ getItems location contents, removeFromLocation location seenItems contents) -- take items                  
+            else if choice == "help" then do -- help functions
+                                            putStrLn "Here is a list of commands you can use"
+                                            putStrLn "1. take - takes the items you can see"
+                                            putStrLn "2. exit - exits the application"
+                                            game (location, weapons, contents)
+            else if choice == "fight" then do -- intiate combat
+                                            fight (balrog, (startingHealth, weapons))
+                                            game (location, weapons, contents)
+            else do 
+                    putStrLn "\n\n"
+                    game (location, weapons, contents)
 
 
 
