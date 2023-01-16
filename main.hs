@@ -1,5 +1,8 @@
+import System.Random
+import System.Exit
+
 type Location = String
-type Map = [(Location, Location)]
+type Map_ = [(Location, Location)]
 
 type Contents = [(Location, [Weapon])]
 
@@ -34,7 +37,7 @@ _weapons = [("Wooden sword", 5), ("Pickaxe", 4), ("Whip", 4), ("Shovel", 3), ("F
 locations :: [Location]
 locations = ["Campsite", "Forest", "Mine", "Swamp", "Lake", "Mountain", "Cabin"]
 
-_map :: Map
+_map :: Map_
 _map = [(campsite, forest), (forest, mines), (forest, swamp), (forest, mountain), (swamp, lake), (swamp, mountain), (lake, cabin), (mountain, cabin)]
     where
         campsite = "Campsite"
@@ -80,7 +83,9 @@ getStatsOfAWeapon x (z:zs)
     = if x == fst(z) then snd(z)
     else getStatsOfAWeapon x zs
 
-
+getRandomElement :: [a] -> (StdGen -> (a, StdGen))
+getRandomElement xs = \gen -> let (index, newGen) = randomR (0, length xs - 1) gen
+                              in (xs !! index, newGen)
 ---------------------------------------------------------------------------
 -----------------------------------FIGHT-----------------------------------
 ---------------------------------------------------------------------------
@@ -127,7 +132,7 @@ printPlayer (health, items)
 printEnemy :: Enemy -> IO()
 printEnemy (race, enemyHealth, attacks)
     = do
-        if enemyHealth <= 0 then putStrLn ("The " ++ race ++ " has been killed!")
+        if enemyHealth <= 0 then putStrLn $ "The " ++ race ++ " has been killed!"
         else do
                 putStrLn "-------------------\n"
                 putStr "Race: "
@@ -140,21 +145,28 @@ printEnemy (race, enemyHealth, attacks)
 fight:: Fight -> IO()
 fight ((race, enemyHealth, attacks), (playerHealth, items))
     = do
-        if enemyHealth <= 0 then do putStrLn ("\nThe " ++ race ++ " has been killed!")
-        else if playerHealth <= 0 then do putStrLn "You have been killed!"
+        if enemyHealth <= 0 then do putStrLn $ "\nThe " ++ race ++ " has been killed!"
+        else if playerHealth <= 0 then do 
+                                        putStrLn "You have been killed!"
+                                        exitSuccess
         else do
                 printEnemy (race, enemyHealth, attacks)
                 printPlayer (playerHealth, items)
-                putStrLn "What do you do?"
+                putStrLn "What do you do? (attack/run)"
                 option <- getLine
-                if option == "attack" then do
+                if option `elem` exitWords then do putStrLn "Thank you for playing!"
+                else if option == "attack" then do
                                             putStrLn "Which weapon do you want to use?"
                                             putStrLn (enumerateWeapons items)
                                             weaponOfChoice <- getLine
-                                            fight ((race, enemyHealth - (getStatsOfAWeapon weaponOfChoice _weapons), attacks),(playerHealth - 4, items))
+                                            gen <- newStdGen
+                                            let (randomElem, _) = getRandomElement attacks gen
+                                            putStrLn $ "The " ++ race ++ " hit you for " ++ (show randomElem) ++ " damage!\n"  
+                                            fight ((race, enemyHealth - (getStatsOfAWeapon weaponOfChoice _weapons), attacks),(playerHealth - randomElem, items))
 
+                else if option == "run" then do putStrLn ""
                 else do
-                        putStrLn ("The " ++ race ++ " hit you for 3 damage!\n")                    
+                        putStrLn $ "The " ++ race ++ " hit you for 3 damage!\n"                    
                         fight((race, enemyHealth, attacks), (playerHealth - 3, items))
         
 
@@ -165,7 +177,7 @@ fight ((race, enemyHealth, attacks), (playerHealth, items))
 --------------------------------------------------------------------------
 
 startingHealth :: Int
-startingHealth = 50
+startingHealth = 30
 
 game :: Game -> IO()
 game (location, weapons, contents)
@@ -182,28 +194,25 @@ game (location, weapons, contents)
         putStr (enumerate canGo)
         putStrLn "The items you see are (take): " -- "take" - takes all the items
         putStrLn (enumerateWeapons seenItems)
-        if location == "Cabin" then do
-                                    putStrLn "You have encountered an enemy! What do you do? (fight/run)"
-                                    action <- getLine
-                                    if action == "fight" then do
-                                                                fight (balrog, (startingHealth, weapons))
-                                    else do game (location, weapons, contents)
-        else do
-            choice <- getLine
-            if choice `elem` exitWords then do putStrLn "Thank you for playing!" -- quit the game
-            else if choice `elem` canGo then do game (choice, weapons, contents) -- go to a different location
-            else if choice == "take" then do game (location, weapons ++ getItems location contents, removeFromLocation location seenItems contents) -- take items                  
-            else if choice == "help" then do -- help functions
-                                            putStrLn "Here is a list of commands you can use"
-                                            putStrLn "1. take - takes the items you can see"
-                                            putStrLn "2. exit - exits the application"
-                                            game (location, weapons, contents)
-            else if choice == "fight" then do -- initiate combat
-                                            fight (balrog, (startingHealth, weapons))
-                                            game (location, weapons, contents)
-            else do 
-                    putStrLn "\n\n"
-                    game (location, weapons, contents)
+        choice <- getLine
+        if choice `elem` exitWords then do putStrLn "Thank you for playing!" -- quit the game
+        else if location == "Mountain" && choice == "Cabin" then do
+                            putStrLn "You have encountered an enemy! What do you do? (fight/run)"
+                            action <- getLine
+                            if action == "fight" then do
+                                                        fight (balrog, (startingHealth, weapons))
+                                                        game ("Cabin", weapons, contents)
+                            else do game (location, weapons, contents)
+        else if choice `elem` canGo then do game (choice, weapons, contents) -- go to a different location
+        else if choice == "take" then do game (location, weapons ++ getItems location contents, removeFromLocation location seenItems contents) -- take items                  
+        else if choice == "help" then do -- help functions
+                                        putStrLn "Here is a list of commands you can use"
+                                        putStrLn "1. take - takes the items you can see"
+                                        putStrLn "2. exit - exits the application"
+                                        game (location, weapons, contents)
+        else do 
+                putStrLn "\n\n"
+                game (location, weapons, contents)
 
 
 
