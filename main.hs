@@ -13,12 +13,6 @@ type Event = Game -> Game
 type Dialogue = String
 --------------------------------------------------------
 
-exitWords :: [String]
-exitWords = ["exit","EXIT", "quit","QUIT", "q"]
-
-start :: Game -- "game start" starts playing
-start = ("Campsite", [], _contents)
-
 _contents :: Contents
 _contents = 
     [ 
@@ -32,7 +26,7 @@ _contents =
     ]
 
 _weapons :: [Weapon]
-_weapons = [("Wooden sword", 5), ("Pickaxe", 4), ("Whip", 4), ("Shovel", 3), ("Fishing rod", 1), ("Shield", 2), ("Shotgun", 10)]
+_weapons = [("Wooden sword", 5), ("Pickaxe", 4), ("Whip", 4), ("Shovel", 3), ("Fishing rod", 1), ("Shield", 2), ("Shotgun", 10), ("Instakill", 1000)]
 
 locations :: [Location]
 locations = ["Campsite", "Forest", "Mine", "Swamp", "Lake", "Mountain", "Cabin"]
@@ -47,6 +41,10 @@ _map = [(campsite, forest), (forest, mines), (forest, swamp), (forest, mountain)
         lake = "Lake"
         mountain = "Mountain"
         cabin = "Cabin"
+
+--------------------------------------------------------------------------------
+--------------------------------HELPER FUNCTIONS--------------------------------
+--------------------------------------------------------------------------------
 
 removeOne :: Eq a => [a] -> a -> [a]
 removeOne [] _ = []
@@ -104,15 +102,12 @@ type Fight = (Enemy, Player)
 
 type Weapon = (String, Int)
 
-
-balrog :: Enemy
-balrog = ("Balrog", 25, [2, 5, 3])
-
 testPlayer :: Player
 testPlayer = (50, 
                 [
-                    ("Iron sword", 5),
-                    ("Shield", 2)
+                    ("Wooden sword", 5),
+                    ("Shield", 2),
+                    ("Instakill", 1000)
                 ]
             )
 
@@ -172,8 +167,17 @@ fight ((race, enemyHealth, attacks), (playerHealth, items))
 -----------------------------------GAME-----------------------------------
 --------------------------------------------------------------------------
 
+exitWords :: [String]
+exitWords = ["exit","EXIT", "quit","QUIT", "q"]
+
+balrog :: Enemy
+balrog = ("Balrog", 25, [2, 5, 3])
+
 startingHealth :: Int
 startingHealth = 30
+
+start :: Game -- "game start" starts playing
+start = ("Campsite", [], _contents)
 
 game :: Game -> IO() -- our game ("game start" to start playing!)
 game (location, weapons, contents)
