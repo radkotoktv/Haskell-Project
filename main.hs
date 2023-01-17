@@ -16,7 +16,7 @@ type Dialogue = String
 exitWords :: [String]
 exitWords = ["exit","EXIT", "quit","QUIT", "q"]
 
-start :: Game
+start :: Game -- "game start" starts playing
 start = ("Campsite", [], _contents)
 
 _contents :: Contents
@@ -58,23 +58,23 @@ removeAll :: Eq a => [a] -> [a] -> [a]
 removeAll xs [] = xs
 removeAll xs (y:ys) = removeAll (removeOne xs y) ys
 
-removeFromLocation :: Location -> [Weapon] -> Contents -> Contents
+removeFromLocation :: Location -> [Weapon] -> Contents -> Contents -- removes all elements from a given location
 removeFromLocation _ _ [] = []
 removeFromLocation l ys ((x,xs):rest)
     | x == l    = (x, removeAll xs ys):rest
     | otherwise = (x, xs):removeFromLocation l ys rest
 
-getItems :: Location -> Contents -> [Weapon]
+getItems :: Location -> Contents -> [Weapon] -- gets the items from a given location
 getItems l contents = concat [y | (x, y) <- contents, x == l]
 
-enumerate :: [String] -> String
+enumerate :: [String] -> String -- ex. ["a", "b", "c"] ----> 1. a  \n   2. b  \n   3. c
 enumerate xs = unlines ["  " ++ show i ++ ". " ++ x | (i,x) <- zip [1..] xs ]
 
 enumerateWeapons :: [Weapon] -> String
 enumerateWeapons [] = []
 enumerateWeapons xs = unlines ["  " ++ show i ++ ". " ++ a ++ " (" ++ show b ++ " damage)"| (i, (a, b)) <- zip [1..] xs ]
 
-accessible :: Location -> [Location]
+accessible :: Location -> [Location] -- locations you can go to from the current one (gets information from "_map")
 accessible l = [x | (x, y) <- _map , y == l] ++ [y | (x, y) <- _map , x == l]
 
 getStatsOfAWeapon :: String -> [Weapon] -> Int
@@ -83,9 +83,10 @@ getStatsOfAWeapon x (z:zs)
     = if x == fst(z) then snd(z)
     else getStatsOfAWeapon x zs
 
-getRandomElement :: [a] -> (StdGen -> (a, StdGen))
+getRandomElement :: [a] -> (StdGen -> (a, StdGen)) -- gives a random element of a list
 getRandomElement xs = \gen -> let (index, newGen) = randomR (0, length xs - 1) gen
                               in (xs !! index, newGen)
+
 ---------------------------------------------------------------------------
 -----------------------------------FIGHT-----------------------------------
 ---------------------------------------------------------------------------
@@ -115,7 +116,7 @@ testPlayer = (50,
                 ]
             )
 
-printPlayer :: Player -> IO()
+printPlayer :: Player -> IO() -- prints out all the information about the player
 printPlayer (health, items)
     = do
         if health <= 0 then putStrLn ("You have died :(")
@@ -129,7 +130,7 @@ printPlayer (health, items)
                 putStrLn "Weapons: "
                 putStrLn (enumerateWeapons items)
 
-printEnemy :: Enemy -> IO()
+printEnemy :: Enemy -> IO() -- prints out all the information about the given enemy
 printEnemy (race, enemyHealth, attacks)
     = do
         if enemyHealth <= 0 then putStrLn $ "The " ++ race ++ " has been killed!"
@@ -142,7 +143,7 @@ printEnemy (race, enemyHealth, attacks)
                 putStr "HP: "
                 print enemyHealth
 
-fight:: Fight -> IO()
+fight:: Fight -> IO() -- a loop which simulates a fight between an enemy and the player
 fight ((race, enemyHealth, attacks), (playerHealth, items), _game)
     = do
         if enemyHealth <= 0 then do putStrLn $ "\nThe " ++ race ++ " has been killed!"
@@ -170,8 +171,6 @@ fight ((race, enemyHealth, attacks), (playerHealth, items), _game)
                         fight((race, enemyHealth, attacks), (playerHealth - 3, items), _game)
         
 
-
-
 --------------------------------------------------------------------------
 -----------------------------------GAME-----------------------------------
 --------------------------------------------------------------------------
@@ -192,21 +191,21 @@ game (location, weapons, contents)
         putStrLn (enumerateWeapons inventory)
         putStrLn "You can go to: " -- To go there type the name of the location (ex. Forest)
         putStr (enumerate canGo)
-        putStrLn "The items you see are (take): " -- "take" - takes all the items
+        putStrLn "The items you see are (take): " -- take - takes all the items from the current location
         putStrLn (enumerateWeapons seenItems)
         choice <- getLine
         if choice `elem` exitWords then do 
                                             putStrLn "Thank you for playing!" -- quit the game
                                             exitSuccess
-        else if choice == "Cabin" then do
+        else if choice == "Cabin" then do -- there is an enemy at "Cabin"
                                         putStrLn "You have encountered an enemy! What do you do? (fight/run)"
                                         action <- getLine
                                         if action == "fight" then do 
-                                                                    fight (balrog, (startingHealth, weapons), (location, weapons, contents))
-                                                                    game (choice, weapons, contents)
-                                        else do game (location, weapons, contents)
+                                                                    fight (balrog, (startingHealth, weapons), (location, weapons, contents)) -- starts a fight with the enemy
+                                                                    game (choice, weapons, contents) -- goes to "Cabin"
+                                        else do game (location, weapons, contents) -- goes back to the current location if you choose "run"
         else if choice `elem` canGo then do game (choice, weapons, contents) -- go to a different location
-        else if choice == "take" then do game (location, weapons ++ getItems location contents, removeFromLocation location seenItems contents) -- take items                  
-        else do 
+        else if choice == "take" then do game (location, weapons ++ getItems location contents, removeFromLocation location seenItems contents) -- take all items from the current location               
+        else do -- if the input is invalid, nothing happens
                 putStrLn "\n\n"
                 game (location, weapons, contents)
